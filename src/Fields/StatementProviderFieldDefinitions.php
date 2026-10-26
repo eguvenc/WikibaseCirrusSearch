@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Wikibase\Search\Elastic\Fields;
 
 use Psr\Log\LoggerInterface;
@@ -9,137 +11,133 @@ use Wikibase\Lib\SettingsArray;
 use Wikibase\Repo\Search\Fields\FieldDefinitions;
 use Wikibase\Repo\Search\Fields\WikibaseIndexField;
 
-/**
- * Fields for an object that has statements.
- *
- * @license GPL-2.0-or-later
- * @author Stas Malyshev
- */
-class StatementProviderFieldDefinitions implements FieldDefinitions {
+/** Fields for an object that has statements. */
+class StatementProviderFieldDefinitions implements FieldDefinitions
+{
+    private $propertyIds;
+    private $searchIndexDataFormatters;
+    private $dataTypeFactory;
+    private $propertyDataTypeLookup;
+    private $indexedTypes;
+    private $excludedIds;
+    private $allowedQualifierPropertyIdsForQuantityStatements;
+    private ?LoggerInterface $logger;
+    private $statementProvider;
 
-	/**
-	 * List of properties to index.
-	 * @var string[]
-	 */
-	private $propertyIds;
+    public function __construct(
+        DataTypeFactory $dataTypeFactory,
+        PropertyDataTypeLookup $propertyDataTypeLookup,
+        array $searchIndexDataFormatters,
+        array $propertyIds,
+        array $indexedTypes,
+        array $excludedIds,
+        array $allowedQualifierPropertyIdsForQuantityStatements,
+        ?LoggerInterface $logger = null,
+        ?callable $statementProvider = null
+    ) {
+        $this->propertyIds = $propertyIds;
+        $this->searchIndexDataFormatters = $searchIndexDataFormatters;
+        $this->dataTypeFactory = $dataTypeFactory;
+        $this->propertyDataTypeLookup = $propertyDataTypeLookup;
+        $this->indexedTypes = $indexedTypes;
+        $this->excludedIds = $excludedIds;
+        $this->allowedQualifierPropertyIdsForQuantityStatements =
+            $allowedQualifierPropertyIdsForQuantityStatements;
+        $this->logger = $logger;
+        $this->statementProvider = $statementProvider;
+    }
 
-	/**
-	 * @var callable[]
-	 */
-	private $searchIndexDataFormatters;
-	/**
-	 * @var DataTypeFactory
-	 */
-	private $dataTypeFactory;
-	/**
-	 * @var PropertyDataTypeLookup
-	 */
-	private $propertyDataTypeLookup;
-	/**
-	 * @var array
-	 */
-	private $indexedTypes;
-	/**
-	 * @var array
-	 */
-	private $excludedIds;
-	/**
-	 * @var array
-	 */
-	private $allowedQualifierPropertyIdsForQuantityStatements;
+    /**
+     * @return WikibaseIndexField[] Key is field name, value is WikibaseIndexField.
+     */
+    public function getFields()
+    {
+        $fields = [
+            StatementsField::NAME => new StatementsField(
+                $this->dataTypeFactory,
+                $this->propertyDataTypeLookup,
+                $this->propertyIds,
+                $this->indexedTypes,
+                $this->excludedIds,
+                $this->searchIndexDataFormatters,
+                $this->logger,
+                $this->statementProvider
+            ),
+            // Existing linked-entity fields.
+            AcademicFieldIndexField::NAME => new AcademicFieldIndexField(),
+            LocationIndexField::NAME => new LocationIndexField(),
+            LocationSuggestionIndexField::NAME => new LocationSuggestionIndexField(),
+            OrganizationSuggestionIndexField::NAME => new OrganizationSuggestionIndexField(),
+            MaintainerIndexField::NAME => new MaintainerIndexField(),
+            SuggestIndexField::NAME => new SuggestIndexField(),
+            PartOfSeriesIndexField::NAME => new PartOfSeriesIndexField(),
+            InstanceOfIndexField::NAME => new InstanceOfIndexField(),
 
-	private ?LoggerInterface $logger;
+            // Direct event fields.
+            TitlesIndexField::NAME => new TitlesIndexField(),
+            AcronymsIndexField::NAME => new AcronymsIndexField(),
+            OrdinalIndexField::NAME => new OrdinalIndexField(),
+            EventModeIndexField::NAME => new EventModeIndexField(),
+            EventTypeIndexField::NAME => new EventTypeIndexField(),
+            RecordStatusIndexField::NAME => new RecordStatusIndexField(),
+            EventLanguagesIndexField::NAME => new EventLanguagesIndexField(),
+            OfficialLinksIndexField::NAME => new OfficialLinksIndexField(),
+            DeadlinesIndexField::NAME => new DeadlinesIndexField(),
+            AlternativeIdsIndexField::NAME => new AlternativeIdsIndexField(),
+            RelatedIdsIndexField::NAME => new RelatedIdsIndexField(),
+            RelatedEventsIndexField::NAME => new RelatedEventsIndexField(),
+            RelatedExternalEventsIndexField::NAME => new RelatedExternalEventsIndexField(),
+            MetricsIndexField::NAME => new MetricsIndexField(),
+            RankingsIndexField::NAME => new RankingsIndexField(),
 
-	/**
-	 * @var ?callable
-	 */
-	private $statementProvider;
+            // Direct scalar fields.
+            'uuid' => new ConfiguredEventScalarIndexField('uuid', 'uuid', 'keyword'),
+            'doi' => new ConfiguredEventScalarIndexField('doi', 'doi', 'keyword'),
+            'start_date' => new ConfiguredEventScalarIndexField('start_date', 'start_date', 'date'),
+            'end_date' => new ConfiguredEventScalarIndexField('end_date', 'end_date', 'date'),
+            'number_of_tracks' => new ConfiguredEventScalarIndexField('number_of_tracks', 'number_of_tracks', 'integer'),
+            'number_of_attendees' => new ConfiguredEventScalarIndexField('number_of_attendees', 'number_of_attendees', 'integer'),
+            'number_of_countries_represented' => new ConfiguredEventScalarIndexField('number_of_countries_represented', 'number_of_countries_represented', 'integer'),
+            'created_at' => new ConfiguredEventScalarIndexField('created_at', 'created_at', 'date'),
+            'updated_at' => new ConfiguredEventScalarIndexField('updated_at', 'updated_at', 'date'),
 
-	public function __construct(
-		DataTypeFactory $dataTypeFactory,
-		PropertyDataTypeLookup $propertyDataTypeLookup,
-		array $searchIndexDataFormatters,
-		array $propertyIds,
-		array $indexedTypes,
-		array $excludedIds,
-		array $allowedQualifierPropertyIdsForQuantityStatements,
-		?LoggerInterface $logger = null,
-		?callable $statementProvider = null
-	) {
-		$this->propertyIds = $propertyIds;
-		$this->searchIndexDataFormatters = $searchIndexDataFormatters;
-		$this->dataTypeFactory = $dataTypeFactory;
-		$this->propertyDataTypeLookup = $propertyDataTypeLookup;
-		$this->indexedTypes = $indexedTypes;
-		$this->excludedIds = $excludedIds;
-		$this->allowedQualifierPropertyIdsForQuantityStatements =
-			$allowedQualifierPropertyIdsForQuantityStatements;
-		$this->logger = $logger;
-		$this->statementProvider = $statementProvider;
-	}
+            StatementCountField::NAME => new StatementCountField(),
+        ];
 
-	/**
-	 * Get the list of definitions
-	 * @return WikibaseIndexField[] key is field name, value is WikibaseIndexField
-	 */
-	public function getFields() {
-		$fields = [
-			StatementsField::NAME => new StatementsField(
-				$this->dataTypeFactory,
-				$this->propertyDataTypeLookup,
-				$this->propertyIds,
-				$this->indexedTypes,
-				$this->excludedIds,
-				$this->searchIndexDataFormatters,
-				$this->logger,
-				$this->statementProvider
-			),
-			StatementCountField::NAME => new StatementCountField(),
-		];
-		if ( $this->allowedQualifierPropertyIdsForQuantityStatements ) {
-			$fields[StatementQuantityField::NAME] = new StatementQuantityField(
-				$this->dataTypeFactory,
-				$this->propertyDataTypeLookup,
-				$this->propertyIds,
-				$this->indexedTypes,
-				$this->excludedIds,
-				$this->searchIndexDataFormatters,
-				$this->allowedQualifierPropertyIdsForQuantityStatements,
-				$this->logger
-			);
-		}
-		return $fields;
-	}
+        if ($this->allowedQualifierPropertyIdsForQuantityStatements) {
+            $fields[StatementQuantityField::NAME] = new StatementQuantityField(
+                $this->dataTypeFactory,
+                $this->propertyDataTypeLookup,
+                $this->propertyIds,
+                $this->indexedTypes,
+                $this->excludedIds,
+                $this->searchIndexDataFormatters,
+                $this->allowedQualifierPropertyIdsForQuantityStatements,
+                $this->logger
+            );
+        }
 
-	/**
-	 * Factory to create StatementProviderFieldDefinitions from configs
-	 * @param DataTypeFactory $dataTypeFactory
-	 * @param PropertyDataTypeLookup $propertyDataTypeLookup
-	 * @param callable[] $searchIndexDataFormatters
-	 * @param SettingsArray $settings
-	 * @param LoggerInterface|null $logger
-	 * @param ?callable $statementProvider
-	 * @return StatementProviderFieldDefinitions
-	 */
-	public static function newFromSettings(
-		DataTypeFactory $dataTypeFactory,
-		PropertyDataTypeLookup $propertyDataTypeLookup,
-		array $searchIndexDataFormatters,
-		SettingsArray $settings,
-		?LoggerInterface $logger = null,
-		?callable $statementProvider = null
-	): self {
-		return new static(
-			$dataTypeFactory,
-			$propertyDataTypeLookup,
-			$searchIndexDataFormatters,
-			$settings->getSetting( 'searchIndexProperties' ),
-			$settings->getSetting( 'searchIndexTypes' ),
-			$settings->getSetting( 'searchIndexPropertiesExclude' ),
-			$settings->getSetting( 'searchIndexQualifierPropertiesForQuantity' ),
-			$logger,
-			$statementProvider
-		);
-	}
+        return $fields;
+    }
 
+    public static function newFromSettings(
+        DataTypeFactory $dataTypeFactory,
+        PropertyDataTypeLookup $propertyDataTypeLookup,
+        array $searchIndexDataFormatters,
+        SettingsArray $settings,
+        ?LoggerInterface $logger = null,
+        ?callable $statementProvider = null
+    ): self {
+        return new static(
+            $dataTypeFactory,
+            $propertyDataTypeLookup,
+            $searchIndexDataFormatters,
+            $settings->getSetting('searchIndexProperties'),
+            $settings->getSetting('searchIndexTypes'),
+            $settings->getSetting('searchIndexPropertiesExclude'),
+            $settings->getSetting('searchIndexQualifierPropertiesForQuantity'),
+            $logger,
+            $statementProvider
+        );
+    }
 }
