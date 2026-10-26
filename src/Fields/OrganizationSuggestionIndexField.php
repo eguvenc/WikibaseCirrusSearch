@@ -81,15 +81,14 @@ final class OrganizationSuggestionIndexField extends AbstractEventLinkedEntityIn
     /**
      * Get labels and aliases for searching.
      *
-     * EntityDocument exposes labels and aliases as term collections.
-     *
      * @return string[]
      */
     private function getSearchText(EntityDocument $entity): array
     {
         $values = [];
 
-        foreach ($entity->getLabels()->toArray() as $term) {
+        // Labels
+        foreach ($entity->getLabels() as $term) {
             $value = trim($term->getText());
 
             if ($value !== '') {
@@ -97,9 +96,10 @@ final class OrganizationSuggestionIndexField extends AbstractEventLinkedEntityIn
             }
         }
 
-        foreach ($entity->getAliases()->toArray() as $languageAliases) {
-            foreach ($languageAliases as $term) {
-                $value = trim($term->getText());
+        // Aliases (Wikibase 1.44 API)
+        foreach ($entity->getFingerprint()->getAliasGroups() as $aliasGroup) {
+            foreach ($aliasGroup->getAliases() as $alias) {
+                $value = trim($alias);
 
                 if ($value !== '') {
                     $values[] = $value;

@@ -64,15 +64,15 @@ class StatementProviderFieldDefinitions implements FieldDefinitions
                 $this->statementProvider
             ),
             // Existing linked-entity fields.
+            InstanceOfIndexField::NAME => new InstanceOfIndexField(),
             AcademicFieldIndexField::NAME => new AcademicFieldIndexField(),
             LocationIndexField::NAME => new LocationIndexField(),
             LocationSuggestionIndexField::NAME => new LocationSuggestionIndexField(),
             OrganizationSuggestionIndexField::NAME => new OrganizationSuggestionIndexField(),
-            MaintainerIndexField::NAME => new MaintainerIndexField(),
             SuggestIndexField::NAME => new SuggestIndexField(),
+            MaintainerIndexField::NAME => new MaintainerIndexField(),
             PartOfSeriesIndexField::NAME => new PartOfSeriesIndexField(),
-            InstanceOfIndexField::NAME => new InstanceOfIndexField(),
-
+            
             // Direct event fields.
             TitlesIndexField::NAME => new TitlesIndexField(),
             AcronymsIndexField::NAME => new AcronymsIndexField(),

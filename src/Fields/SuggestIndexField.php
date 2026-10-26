@@ -27,9 +27,9 @@ final class SuggestIndexField extends AbstractEventLinkedEntityIndexField
             }
         }
 
-        foreach ($entity->getAliases() as $languageAliases) {
-            foreach ($languageAliases as $alias) {
-                $text = trim($alias->getText());
+        foreach ($entity->getFingerprint()->getAliasGroups() as $aliasGroup) {
+            foreach ($aliasGroup->getAliases() as $alias) {
+                $text = trim($alias);
 
                 if ($text !== '') {
                     $searchTexts[] = $text;
@@ -44,7 +44,7 @@ final class SuggestIndexField extends AbstractEventLinkedEntityIndexField
             ),
         ];
     }
-
+    
     protected function getFieldMapping(): array
     {
         return [
