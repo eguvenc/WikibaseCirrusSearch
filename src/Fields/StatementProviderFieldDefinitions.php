@@ -68,11 +68,11 @@ class StatementProviderFieldDefinitions implements FieldDefinitions
             AcademicFieldIndexField::NAME => new AcademicFieldIndexField(),
             LocationIndexField::NAME => new LocationIndexField(),
             LocationSuggestionIndexField::NAME => new LocationSuggestionIndexField(),
-            OrganizationSuggestionIndexField::NAME => new OrganizationSuggestionIndexField(),
-            SuggestIndexField::NAME => new SuggestIndexField(),
             MaintainerIndexField::NAME => new MaintainerIndexField(),
             PartOfSeriesIndexField::NAME => new PartOfSeriesIndexField(),
-            
+            OrganizationIndexField::NAME => new OrganizationIndexField(),
+            OrganizationSuggestionIndexField::NAME => new OrganizationSuggestionIndexField(),
+  
             // Direct event fields.
             TitlesIndexField::NAME => new TitlesIndexField(),
             AcronymsIndexField::NAME => new AcronymsIndexField(),
