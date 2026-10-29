@@ -80,6 +80,7 @@ class StatementProviderFieldDefinitions implements FieldDefinitions
             EventModeIndexField::NAME => new EventModeIndexField(),
             EventTypeIndexField::NAME => new EventTypeIndexField(),
             RecordStatusIndexField::NAME => new RecordStatusIndexField(),
+            RecordFlagIndexField::NAME => new RecordFlagIndexField(),
             EventLanguagesIndexField::NAME => new EventLanguagesIndexField(),
             OfficialLinksIndexField::NAME => new OfficialLinksIndexField(),
             DeadlinesIndexField::NAME => new DeadlinesIndexField(),
