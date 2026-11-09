@@ -55,10 +55,17 @@ final class LocationIndexField extends AbstractEventLinkedEntityIndexField
         $rows = [];
 
         foreach ($locationEntities as $locationEntity) {
-            $coordinates = $this->getCoordinatesValue(
+            $coordinateValue = $this->getCoordinateValue(
                 $locationEntity,
                 $coordinatesPropertyId
             );
+            $coordinates = $coordinateValue !== null
+                ? (string) $coordinateValue->getLatitude()
+                    . ','
+                    . (string) $coordinateValue->getLongitude()
+                : null;
+            // geo_point for distance filters and sorting (geo_distance).
+            $geo = $this->toGeoPoint($coordinateValue);
 
             $continentCode = $this->getEntityPropertyValue(
                 $locationEntity,
@@ -131,6 +138,7 @@ final class LocationIndexField extends AbstractEventLinkedEntityIndexField
                 'region' => $region,
                 'venue' => $venue,
                 'coordinates' => $coordinates,
+                'geo' => $geo,
             ];
 
             if ($countryEntities === []) {
@@ -218,10 +226,10 @@ final class LocationIndexField extends AbstractEventLinkedEntityIndexField
         return $data;
     }
 
-    private function getCoordinatesValue(
+    private function getCoordinateValue(
         EntityDocument $entity,
         $propertyId
-    ): ?string {
+    ): ?GlobeCoordinateValue {
         if (
             !$this->isValidPropertyId($propertyId)
             || !$entity instanceof StatementListProvider
@@ -241,13 +249,33 @@ final class LocationIndexField extends AbstractEventLinkedEntityIndexField
 
             $value = $snak->getDataValue();
             if ($value instanceof GlobeCoordinateValue) {
-                return (string) $value->getLatitude()
-                    . ','
-                    . (string) $value->getLongitude();
+                return $value;
             }
         }
 
         return null;
+    }
+
+    /**
+     * Elasticsearch geo_point, or null when the value is missing or out of
+     * range (an invalid point would make the whole document fail to index).
+     *
+     * @return array{lat: float, lon: float}|null
+     */
+    private function toGeoPoint(?GlobeCoordinateValue $value): ?array
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $lat = (float) $value->getLatitude();
+        $lon = (float) $value->getLongitude();
+
+        if ($lat < -90.0 || $lat > 90.0 || $lon < -180.0 || $lon > 180.0) {
+            return null;
+        }
+
+        return ['lat' => $lat, 'lon' => $lon];
     }
 
     protected function getFieldMapping(): array
@@ -297,7 +325,10 @@ final class LocationIndexField extends AbstractEventLinkedEntityIndexField
                 ],
                 // Venue is a string property rather than a linked entity.
                 'venue' => $this->getTextMapping(),
+                // "lat,lon" string, kept for API responses.
                 'coordinates' => ['type' => 'keyword'],
+                // Same point for geo_distance filters and distance sorting.
+                'geo' => ['type' => 'geo_point'],
             ],
         ];
     }
